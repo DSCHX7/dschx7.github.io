@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>腾讯游戏验号器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f8fb; /* 浅灰色背景 */
+        }
+
+       .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1); /* 添加阴影效果 */
+        }
+
+        h1 {
+            color: #007bff; /* 蓝色标题 */
+        }
+
+        h2 {
+            color: #dc3545; /* 红色副标题 */
+            font-size: 14px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        input[type="file"],
+        textarea {
+            margin-top: 10px;
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        #authStatus {
+            margin-bottom: 10px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+       .status {
+            margin-left: 20px;
+        }
+
+        #statusMessage {
+            margin-top: 10px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        #statusMessage.executing {
+            color: #f39c12; /* 执行中状态为橙色 */
+        }
+
+        #statusMessage.finished {
+            color: #2ecc71; /* 过滤完毕状态为绿色 */
+        }
+
+       .copy-button {
+            margin-left: 10px;
+            padding: 5px 10px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+       .copy-button:hover {
+            background-color: #2980b9;
+        }
+
+       .response-item {
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: white;
+        }
+
+       .response-item pre {
+            margin: 0;
+        }
+
+        #responseBox {
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            overflow-y: scroll;
+            max-height: 400px; /* 限制响应区域高度 */
+        }
+
+        #downloadLinkContainer {
+            margin-top: 10px;
+        }
+
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>腾讯游戏验号器<br>仅供使用、用户自行承担责任<h1>
+        <br>
+        <button onclick="window.location.href='/oauth.html'">打开上号器</button>
+<br><br>
+        <!-- 添加选择框 -->
+        <span style="color:red;">当前游戏区服:</span>
+        <select id="gameSelector">
+            <option value="ipa/SJZ.php">三角洲行动全区通用</option>
+            <option value="ipa/AQTW_ios.php">暗区突围iOS区</option>
+            <option value="ipa/AQTW_and.php">暗区突围安卓区</option>
+            <option value="ipa/HPJY_ios.php">和平精英iOS区</option>
+            <option value="ipa/HPJY_and.php">和平精英安卓区</option>
+
+        </select>
+        <br><br>
+        <!-- 文件上传 -->
+        <label for="fileInput">上传数据号文本:</label>
+        <input type="file" id="fileInput" accept=".txt,.json,.text">
+        <button id="fetchDataBtn">提交请求</button>
+        <!-- 新增文本输入框区域 -->
+        <textarea id="manualInput" rows="5" cols="50" placeholder="请输入登录态token参数文本"></textarea>
+        <button id="useManualInputBtn">提交请求</button>
+        <br><br>
+        <!-- 显示鉴权状态 -->
+        <div id="authStatus">
+            <span style="color: green;">正常账号数量：<span id="successCount" style="color: green;">0</span></span>
+            <br>
+            <span style="color: blue;">鉴权失败数量：<span id="failAuthCount" style="color: blue;">0</span></span>
+            <br>
+            <span style="color: red;">已被封号数量：<span id="blockedCount" style="color: red;">0</span></span>
+        </div>
+        <div id="statusMessage"></div>
+        <div id="downloadLinkContainer" style="display: none;">
+            <a id="downloadLink" href="#" download="正常账号·已过滤.txt">下载可用数据</a>
+            <!-- 新增一键复制按钮 -->
+            <br><button id="copyAllResultBtn" class="copy-button">一键复制处理结果</button>
+        </div>
+    </div>
+    <!-- 状态信息显示 -->
+    <br>
+
+    <div id="responseBox"></div>
+    <!-- 下载链接 -->
+</body>
+<script>
+    let successCount = 0;
+    let failureCount = 0;
+    let successData = []; // 用于存储所有成功的处理结果
+    let failAuthCount = 0;
+    let blockedCount = 0;
+
+    document.getElementById('fetchDataBtn').addEventListener('click', async () => {
+        const fileInput = document.getElementById('fileInput');
+        const responseBox = document.getElementById('responseBox');
+        const statusMessage = document.getElementById('statusMessage');
+        const downloadLinkContainer = document.getElementById('downloadLinkContainer');
+        const gameSelector = document.getElementById('gameSelector');
+        const selectedGame = gameSelector.value;
+
+        // 清空响应区域和状态消息
+        responseBox.innerHTML = "";
+        statusMessage.textContent = "执行中...";
+        statusMessage.className = "executing";
+
+        if (!fileInput.files.length) {
+            alert("请先上传文件");
+            return;
+        }
+
+        const file = fileInput.files[0];
+        const fileContent = await readFile(file);
+        const lines = fileContent.split("\n");
+
+        // 发起GET请求并处理每一行
+        for (const line of lines) {
+            const processedLine = processChineseText(line);
+            const token = extractToken(processedLine);
+            if (!token) continue;
+
+            const url = `/${selectedGame}?access_token=${token}`;
+            try {
+                const response = await fetch(url);
+                const data = await response.text();
+                const time = new Date().toLocaleTimeString();
+                if (data.includes("已封号")) {
+                    blockedCount++;
+                    document.getElementById('blockedCount').textContent = blockedCount;
+                    continue;
+                } else if (data.includes("鉴权失败")) {
+                    failAuthCount++;
+                    document.getElementById('failAuthCount').textContent = failAuthCount;
+                    continue;
+                }
+
+                // 将成功的处理结果添加到数组中
+                successData.push({
+                    requestText: processedLine,
+                    responseText: data
+                });
+
+                if (response.ok) {
+                    successCount++;
+                    document.getElementById('successCount').textContent = successCount;
+                } else {
+                    failureCount++;
+                    document.getElementById('failureCount').textContent = failureCount;
+                }
+
+                // 将响应结果添加到页面，只显示请求结果
+                const responseElement = document.createElement('div');
+                responseElement.className ='response-item';
+                responseElement.innerHTML = `<pre>${data}</pre>`;
+
+                const copyButton = document.createElement('button');
+                copyButton.className = 'copy-button';
+                copyButton.textContent = '复制';
+                copyButton.onclick = () => {
+                    copyTextToClipboard(processedLine);
+                };
+
+                responseElement.appendChild(copyButton);
+                responseBox.prepend(responseElement);
+            } catch (error) {
+                failureCount++;
+                document.getElementById('failureCount').textContent = failureCount;
+                const errorElement = document.createElement('div');
+                errorElement.innerHTML = `<strong>请求失败:</strong> ${error.message}`;
+                responseBox.prepend(errorElement);
+            }
+        }
+
+        // 所有请求完成后显示过滤完毕
+        statusMessage.textContent = "过滤完毕";
+        statusMessage.className = "finished";
+
+        // 如果有成功的token，显示下载链接并生成下载内容，将响应结果放在请求文本前面
+        if (successData.length > 0) {
+            let fileContentForDownload = successData.map(item => {
+                // 将响应文本和请求文本中的<br>替换为空格
+                const responseText = item.responseText.replace(/<br>/g,'');
+                const requestText = item.requestText.replace(/<br>/g,'');
+                return `${responseText}\t${requestText}`;
+            }).join("\n");
+            const blob = new Blob([fileContentForDownload], { type: "text/plain" });
+            const downloadUrl = URL.createObjectURL(blob);
+            const downloadLink = document.getElementById('downloadLink');
+            downloadLink.href = downloadUrl;
+            downloadLink.download = "正常账号·已过滤.txt";
+            downloadLinkContainer.style.display = "block";
+
+            // 为一键复制按钮添加点击事件
+            const copyAllResultBtn = document.getElementById('copyAllResultBtn');
+            copyAllResultBtn.onclick = () => {
+                copyTextToClipboard(fileContentForDownload);
+            };
+        }
+    });
+
+    // 新增使用手动输入内容提交请求的点击事件处理函数
+    document.getElementById('useManualInputBtn').addEventListener('click', async () => {
+        const responseBox = document.getElementById('responseBox');
+        const statusMessage = document.getElementById('statusMessage');
+        const downloadLinkContainer = document.getElementById('downloadLinkContainer');
+        const gameSelector = document.getElementById('gameSelector');
+        const selectedGame = gameSelector.value;
+
+        // 清空响应区域和状态消息
+        responseBox.innerHTML = "";
+        statusMessage.textContent = "执行中...";
+        statusMessage.className = "executing";
+
+        const manualInput = document.getElementById('manualInput').value;
+        const lines = manualInput.split("\n");
+
+        // 发起GET请求并处理每一行，和之前处理文件内容的逻辑类似
+        for (const line of lines) {
+            const processedLine = processChineseText(line);
+            const token = extractToken(processedLine);
+            if (!token) continue;
+
+            const url = `/${selectedGame}?access_token=${token}`;
+            try {
+                const response = await fetch(url);
+                const data = await response.text();
+                const time = new Date().toLocaleTimeString();
+
+                // 检测是否包含指定字段，分别更新对应数量
+                if (data.includes("已封号")) {
+                    blockedCount++;
+                    document.getElementById('blockedCount').textContent = blockedCount;
+                    continue;
+                } else if (data.includes("鉴权失败")) {
+                    failAuthCount++;
+                    document.getElementById('failAuthCount').textContent = failAuthCount;
+                    continue;
+                }
+
+                // 将成功的处理结果添加到数组中
+                successData.push({
+                    requestText: processedLine,
+                    responseText: data
+                });
+
+                if (response.ok) {
+                    successCount++;
+                    document.getElementById('successCount').textContent = successCount;
+                } else {
+                    failureCount++;
+                    document.getElementById('failureCount').textContent = failureCount;
+                }
+
+                // 将响应结果添加到页面，只显示请求结果
+                const responseElement = document.createElement('div');
+                responseElement.className ='response-item';
+                responseElement.innerHTML = `<pre>${data}</pre>`;
+
+                const copyButton = document.createElement('button');
+                copyButton.className = 'copy-button';
+                copyButton.textContent = '复制';
+                copyButton.onclick = () => {
+                    copyTextToClipboard(processedLine);
+                };
+
+                responseElement.appendChild(copyButton);
+                responseBox.prepend(responseElement);
+            } catch (error) {
+                failureCount++;
+                document.getElementById('failureCount').textContent = failureCount;
+                const errorElement = document.createElement('div');
+                errorElement.innerHTML = `<strong>请求失败:</strong> ${error.message}`;
+                responseBox.prepend(errorElement);
+            }
+        }
+
+        // 所有请求完成后显示过滤完毕
+        statusMessage.textContent = "过滤完毕";
+        statusMessage.className = "finished";
+
+        // 如果有成功的token，显示下载链接并生成下载内容，将响应结果放在请求文本前面
+        if (successData.length > 0) {
+            let fileContentForDownload = successData.map(item => {
+                // 将响应文本和请求文本中的<br>替换为空格
+                const responseText = item.responseText.replace(/<br>/g,'');
+                const requestText = item.requestText.replace(/<br>/g,'');
+                return `${responseText}\t${requestText}`;
+            }).join("\n");
+            const blob = new Blob([fileContentForDownload], { type: "text/plain" });
+            const downloadUrl = URL.createObjectURL(blob);
+            const downloadLink = document.getElementById('downloadLink');
+            downloadLink.href = downloadUrl;
+            downloadLink.download = "正常账号·已过滤.txt";
+            downloadLinkContainer.style.display = "block";
+
+            // 为一键复制按钮添加点击事件
+            const copyAllResultBtn = document.getElementById('copyAllResultBtn');
+            copyAllResultBtn.onclick = () => {
+                copyTextToClipboard(fileContentForDownload);
+            };
+        }
+    });
+
+    // 读取文件内容
+    function readFile(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => resolve(event.target.result);
+            reader.onerror = reject;
+            reader.readAsText(file);
+        });
+    }
+
+    // 提取每行中的access_token
+    function extractToken(line) {
+        const regex = /access_token=([\w-]+)/;
+        const match = regex.exec(line);
+        if (match) {
+            // 处理access_token前面的中文字符
+            const startIndex = line.indexOf(match[0]);
+            const newLine = line.substring(startIndex);
+            return match[1];
+        }
+        return null;
+    }
+
+    function processChineseText(text) {
+        // 处理access_token后面的中文字符
+        const accessTokenIndex = text.indexOf('access_token=');
+        if (accessTokenIndex!== -1) {
+            const accessTokenEndIndex = text.indexOf('&', accessTokenIndex);
+            if (accessTokenEndIndex === -1) {
+                return text;
+            }
+            const accessTokenPart = text.substring(accessTokenIndex, accessTokenEndIndex);
+            const remainingPart = text.substring(accessTokenEndIndex);
+            const newRemainingPart = remainingPart.replace(/[\u4e00-\u9fa5].*$/, '');
+            return accessTokenPart + newRemainingPart;
+        }
+        return text;
+    }
+
+    // 复制文本到剪贴板
+    function copyTextToClipboard(text) {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('已复制');
+    }
+</script>
+
+</html>
