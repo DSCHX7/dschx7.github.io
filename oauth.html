@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iOS上号器</title>
+    <style>
+        /* 基本页面样式 */
+        body {
+            margin: 0px;
+            padding: 0px;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+            background: url('/5201314.PNG') fixed no-repeat;
+            background-size: cover;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Reset default styles */
+        body,
+        html {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
+       .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+       .wrapper {
+            max-width: 290px;
+            width: 90%;
+            background: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+        }
+
+       .title {
+            margin-bottom: 20px;
+        }
+
+       .title h1 {
+            color: #007BFF;
+            font-size: 24px;
+            margin: 0;
+        }
+
+       .input-item {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+       .input-title {
+            margin-top: 30px;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        #tokenInput {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 15px;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+        }
+
+       .btn {
+            margin-top: 30px;
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+       .btn:hover {
+            background-color: #0056b3;
+        }
+
+        /* Modal styles */
+       .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.4);
+        }
+
+       .modal-content {
+            background-color: #fff;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            border-radius: 15px;
+            max-width: 400px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+       .close {
+            color: #aaa;
+            float: right;
+            font-size: 36px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 10px 20px;
+        }
+
+       .close:hover,
+       .close:focus {
+            color: black;
+            text-decoration: none;
+        }
+
+       .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+       .modal-button {
+            padding: 10px 20px;
+            margin-left: 20px;
+            cursor: pointer;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+       .modal-button:hover {
+            background-color: #0056b3;
+        }
+
+       .clear-btn {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+       .clear-btn:hover {
+            background-color: #0056b3;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="wrapper">
+            <div class="title">
+                <h2 style="color:#007BFF ; font-size: 20px;">
+                    iOS上号器<br>仅供使用、用户自行承担责任
+                </h2>
+                <h2 style="color:#00A8FF ; font-size: 10px;">
+                    支持和平、暗区、三角洲、火影
+                </h2>
+                <input id="tokenInput" type="text" placeholder="请输入登录态token">
+            </div>
+            <button onclick="checkAndLogin()" class="btn">登录</button>
+            <br><br>
+            <button onclick="clearInput()" class="clear-btn">清空输入框内容</button><br><br>
+<button onclick="window.location.href='/index.html'">打开验号器</button>
+        </div>
+    </div>
+    <!-- The Modal -->
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <div id="modalMessage"></div>
+            <h2 style="color: red; font-size: 15px;">
+               注意查看账号在线状态防止顶号&nbsp;！
+            </h2>
+            <div class="modal-buttons">
+                <button class="modal-button" onclick="closeModal()">取消</button>
+                <button class="modal-button" onclick="performRedirect()">确定登录</button>
+
+            </div>
+        </div>
+    </div>
+        <!-- ⚠️请勿改动下方请求逻辑代码⚠️ -->
+    <script>
+        var redirectUrl = ""; // 生成上号链接唤起游戏打开
+
+        function checkAndLogin() {
+            var tokenValue = document.getElementById('tokenInput').value.trim();
+            if (tokenValue === "") {
+                alert("请输入登录态token数据");
+                return;
+            }
+            // 从输入框文本中截取access_token
+            var accessToken = extractAccessToken(tokenValue);
+            var xhr = new XMLHttpRequest();
+            var url = "ipa/info.php?access_token=" + encodeURIComponent(accessToken);
+            xhr.open("GET", url, true);
+
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        var response = JSON.parse(xhr.responseText);
+                        var gameid = response.gameid;
+                        var openid = response.op; // 获取op参数值作为openid
+
+                        if (gameid) {
+                            if (gameid === "1106467070") {
+                                login();
+                                executeSecondRequest1(accessToken, openid); // 传递accessToken和openid
+                            } else if (gameid === "1110196838") {
+                                login2();
+                                executeSecondRequest2(accessToken, openid); // 传递accessToken和openid
+                            } else if (gameid === "1110543085") {
+                                login5();
+                                executeSecondRequest5(accessToken, openid); // 传递accessToken和openid
+                          } else if (gameid === "1104307008") {
+                                login4();
+                                executeSecondRequest4(accessToken, openid); // 传递accessToken和openid
+                            } else {
+                                alert("鉴权失败，改密、无效数据、无法执行相应登录操作");
+                            }
+                        } else {
+                            alert("鉴权失败，改密、无效数据、无法执行相应登录操作");
+                        }
+                    } else {
+                        alert("请求失败，状态码：" + xhr.status);
+                    }
+                }
+            };
+            xhr.send();
+        }
+
+        function extractAccessToken(input) {
+            var match = input.match(/access_token=([a-zA-Z0-9_-]+)/);
+            return match? match[1] : '';
+        }
+
+        function login() {
+            var tokenValue = document.getElementById('tokenInput').value.trim();
+            if (tokenValue === "") {
+                alert("请输入需要登录的数据");
+            } else {
+                var xhr = new XMLHttpRequest();
+                var url = "ipa/HPJY_ios.php?access_token=" + encodeURIComponent(extractAccessToken(tokenValue));
+                xhr.open("GET", url, true);
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status === 200) {
+                            showModal(xhr.responseText);
+                        } else {
+                            showModal("请求失败，状态码：" + xhr.status);
+                        }
+                    }
+                };
+                xhr.send();
+            }
+        }
+
+        function clearInput() {
+            document.getElementById('tokenInput').value = '';
+        }
+
+        function executeSecondRequest1(accessToken, openid) {
+            var formattedText = `_Callback({"ret":0,"url":"auth://www.qq.com?#access_token=${accessToken}&expires_in=5184000&openid=${openid}&pay_token=2588ED2D386DCE27744AFB7F5E162BCB&state=test&ret=0&pf=openmobile_ios&pfkey=6065604fb83aa6c1bf88fdfecbf2a2da&auth_time=1728652667&page_type=0"})`;
+
+            var xhr2 = new XMLHttpRequest();
+            var url = "ipa/oauth.php?access_token=" + encodeURIComponent(btoa(formattedText));
+            xhr2.open("GET", url, true);
+            xhr2.onreadystatechange = function () {
+                if (xhr2.readyState === 4) {
+                    if (xhr2.status === 200) {
+                        redirectUrl = xhr2.responseText; // 保存响应内容作为跳转链接
+                        var response = JSON.parse(xhr2.responseText);
+                        if (response.success) {
+                            showModal(response.msg);
+                        } else {
+                            showModal(response.msg);
+                        }
+                    } else {
+                        showModal("请求失败，状态码：" + xhr2.status);
+                    }
+                }
+            };
+            xhr2.send();
+        }
+
+        function executeSecondRequest2(accessToken, openid) {
+            var formattedText = `_Callback({"ret":0,"url":"auth://www.qq.com?#access_token=${accessToken}&expires_in=5184000&openid=${openid}&pay_token=2588ED2D386DCE27744AFB7F5E162BCB&state=test&ret=0&pf=openmobile_ios&pfkey=6065604fb83aa6c1bf88fdfecbf2a2da&auth_time=1728652667&page_type=0"})`;
+
+            var xhr2 = new XMLHttpRequest();
+            var url = "ipa/oauth2.php?access_token=" + encodeURIComponent(btoa(formattedText));
+            xhr2.open("GET", url, true);
+            xhr2.onreadystatechange = function () {
+                if (xhr2.readyState === 4) {
+                    if (xhr2.status === 200) {
+                        redirectUrl = xhr2.responseText; // 保存响应内容作为跳转链接
+                        var response = JSON.parse(xhr2.responseText);
+                        if (response.success) {
+                            showModal(response.msg);
+                        } else {
+                            showModal(response.msg);
+                        }
+                    } else {
+                        showModal("请求失败，状态码：" + xhr2.status);
+                    }
+                }
+            };
+            xhr2.send();
+        }
+        function executeSecondRequest4(accessToken, openid) {
+            var formattedText = `_Callback({"ret":0,"url":"auth://www.qq.com?#access_token=${accessToken}&expires_in=5184000&openid=${openid}&pay_token=2588ED2D386DCE27744AFB7F5E162BCB&state=test&ret=0&pf=openmobile_ios&pfkey=6065604fb83aa6c1bf88fdfecbf2a2da&auth_time=1728652667&page_type=0"})`;
+
+            var xhr2 = new XMLHttpRequest();
+            var url = "ipa/oauth4.php?access_token=" + encodeURIComponent(btoa(formattedText));
+            xhr2.open("GET", url, true);
+            xhr2.onreadystatechange = function () {
+                if (xhr2.readyState === 4) {
+                    if (xhr2.status === 200) {
+                        redirectUrl = xhr2.responseText; // 保存响应内容作为跳转链接
+                        var response = JSON.parse(xhr2.responseText);
+                        if (response.success) {
+                            showModal(response.msg);
+                        } else {
+                            showModal(response.msg);
+                        }
+                    } else {
+                        showModal("请求失败，状态码：" + xhr2.status);
+                    }
+                }
+            };
+            xhr2.send();
+        }
+        function executeSecondRequest5(accessToken, openid) {
+            var formattedText = `_Callback({"ret":0,"url":"auth://www.qq.com?#access_token=${accessToken}&expires_in=5184000&openid=${openid}&pay_token=2588ED2D386DCE27744AFB7F5E162BCB&state=test&ret=0&pf=openmobile_ios&pfkey=6065604fb83aa6c1bf88fdfecbf2a2da&auth_time=1728652667&page_type=0"})`;
+
+            var xhr2 = new XMLHttpRequest();
+            var url = "ipa/oauth3.php?access_token=" + encodeURIComponent(btoa(formattedText));
+            xhr2.open("GET", url, true);
+            xhr2.onreadystatechange = function () {
+                if (xhr2.readyState === 4) {
+                    if (xhr2.status === 200) {
+                        redirectUrl = xhr2.responseText; // 保存响应内容作为跳转链接
+                        var response = JSON.parse(xhr2.responseText);
+                        if (response.success) {
+                            showModal(response.msg);
+                        } else {
+                            showModal(response.msg);
+                        }
+                    } else {
+                        showModal("请求失败，状态码：" + xhr2.status);
+                    }
+                }
+            };
+            xhr2.send();
+        }
+
+        function showModal(message) {
+            document.getElementById('modalMessage').innerHTML = message;
+            document.getElementById('myModal').style.display = "block";
+        }
+
+        function closeModal() {
+            document.getElementById('myModal').style.display = "none";
+        }
+
+        function performRedirect() {
+            if (redirectUrl) {
+                window.open(redirectUrl, "_self");
+            }
+            closeModal();
+        }
+
+        function login2() {
+            var tokenValue = document.getElementById('tokenInput').value.trim();
+            if (tokenValue === "") {
+                alert("请输入需要登录的数据");
+            } else {
+                var xhr = new XMLHttpRequest();
+                var url = "ipa/AQTW_ios.php?access_token=" + encodeURIComponent(extractAccessToken(tokenValue));
+                xhr.open("GET", url, true);
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status === 200) {
+                            showModal(xhr.responseText);
+                        } else {
+                            showModal("请求失败，状态码：" + xhr.status);
+                        }
+                    }
+                };
+                xhr.send();
+            }
+        }
+
+        function login4() {
+            var tokenValue = document.getElementById('tokenInput').value.trim();
+            if (tokenValue === "") {
+                alert("请输入需要登录的数据");
+            } else {
+                var xhr = new XMLHttpRequest();
+                var url = "ipa/hy.php?access_token=" + encodeURIComponent(extractAccessToken(tokenValue));
+                xhr.open("GET", url, true);
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status === 200) {
+                            showModal(xhr.responseText);
+                        } else {
+                            showModal("火影仅支持上号：" + xhr.status);
+                        }
+                    }
+                };
+                xhr.send();
+            }
+        }
+        function login5() {
+            var tokenValue = document.getElementById('tokenInput').value.trim();
+            if (tokenValue === "") {
+                alert("请输入需要登录的数据");
+            } else {
+                var xhr = new XMLHttpRequest();
+                var url = "ipa/SJZ.php?access_token=" + encodeURIComponent(extractAccessToken(tokenValue));
+                xhr.open("GET", url, true);
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status === 200) {
+                            showModal(xhr.responseText);
+                        } else {
+                            showModal("请求失败，状态码：" + xhr.status);
+                        }
+                    }
+                };
+                xhr.send();
+            }
+        }
+    </script>
+</body>
+
+</html>
